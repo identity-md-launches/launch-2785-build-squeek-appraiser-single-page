@@ -317,6 +317,48 @@ async function appraise(requested, updateHash = true) {
     `${count} of ${state.cards.length} Squeeks appraised. ${economyError ? "Pool data is unknown." : state.ctx?.status !== "verified" ? "Contract verification is unavailable." : ""}`,
   );
 }
+const focusable = "a[href], button, summary, input";
+/** Records which card disclosures are open and which card control has focus, so re-renders keep the reader's place. @param {HTMLElement} cards */
+function readerPlace(cards) {
+  /** @type {Set<string>} */
+  const open = new Set();
+  for (const d of cards.querySelectorAll(
+    "article[data-key] details[open][data-disclosure]",
+  ))
+    open.add(
+      `${d.closest("article")?.dataset.key}|${/** @type {HTMLElement} */ (d).dataset.disclosure}`,
+    );
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || !cards.contains(active))
+    return { open, focus: null };
+  const article = active.closest("article[data-key]");
+  const focus =
+    article instanceof HTMLElement
+      ? {
+          key: article.dataset.key ?? "",
+          index: [...article.querySelectorAll(focusable)].indexOf(active),
+          top: active.getBoundingClientRect().top,
+        }
+      : null;
+  return { open, focus };
+}
+/** @param {HTMLElement} cards @param {ReturnType<typeof readerPlace>} kept */
+function restorePlace(cards, kept) {
+  for (const d of cards.querySelectorAll(
+    "article[data-key] details[data-disclosure]",
+  )) {
+    const key = `${d.closest("article")?.dataset.key}|${/** @type {HTMLElement} */ (d).dataset.disclosure}`;
+    if (kept.open.has(key)) /** @type {HTMLDetailsElement} */ (d).open = true;
+  }
+  if (!kept.focus) return;
+  const article = [...cards.querySelectorAll("article[data-key]")].find(
+    (a) => a instanceof HTMLElement && a.dataset.key === kept.focus?.key,
+  );
+  const target = article?.querySelectorAll(focusable)[kept.focus.index];
+  if (!(target instanceof HTMLElement)) return;
+  target.focus({ preventScroll: true });
+  window.scrollBy(0, target.getBoundingClientRect().top - kept.focus.top);
+}
 function render() {
   const has = state.cards.length > 0;
   get("#empty-state").hidden = has;
@@ -328,13 +370,18 @@ function render() {
   ])
     get(id).hidden = !has;
   if (!has) return;
-  get("#cards").replaceChildren(
-    ...state.cards.map((c) =>
-      card(c, state, () => {
+  const cards = get("#cards");
+  const kept = readerPlace(cards);
+  cards.replaceChildren(
+    ...state.cards.map((c, i) => {
+      const node = card(c, state, () => {
         void appraise(state.cards.map((x) => ({ id: x.id, price: x.price })));
-      }),
-    ),
+      });
+      node.dataset.key = `${i}:${c.id}`;
+      return node;
+    }),
   );
+  restorePlace(cards, kept);
   get("#verdict").replaceChildren(verdict(state));
   get("#comparison-table").replaceChildren(...comparison(state));
   const refresh = /** @type {HTMLButtonElement} */ (get("#refresh-button"));

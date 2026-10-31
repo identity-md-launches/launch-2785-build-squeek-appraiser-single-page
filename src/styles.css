@@ -496,6 +496,10 @@ summary::marker {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 24px;
 }
+.verdict > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .verdict .verdict-heading {
   color: var(--green);
   font-size: var(--text-title);
@@ -670,6 +674,7 @@ tbody tr:last-child > * {
 }
 .card-power {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
   margin-top: 18px;

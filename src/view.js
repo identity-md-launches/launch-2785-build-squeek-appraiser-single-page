@@ -180,10 +180,9 @@ export function verdict(state) {
       power = integer(best.card.data?.basePower);
     if (price && power != null)
       reasons.append(
-        el(
-          "li",
-          "",
+        reason(
           `${number(power)} power for ${price.canonical} ETH: ${decimal(power * price.denominator, price.numerator * 100n)} power per 0.01 ETH.`,
+          [tokenLink(best.card), priceLink()],
         ),
       );
     if (scored.length > 1) {
@@ -191,10 +190,17 @@ export function verdict(state) {
       const diffN =
         best.score.n * second.score.d - second.score.n * best.score.d;
       reasons.append(
-        el(
-          "li",
-          "",
+        reason(
           `${decimal(diffN * 100n, best.score.d * second.score.n, 1)}% higher adjusted score than #${second.card.id}.`,
+          [
+            tokenLink(best.card),
+            tokenLink(second.card),
+            priceLink(),
+            ...(state.account?.account &&
+            (partnerFor(best.card, state) || partnerFor(second.card, state))
+              ? [walletLink(state.account.account)]
+              : []),
+          ],
         ),
       );
     } else
@@ -210,30 +216,57 @@ export function verdict(state) {
     held = heldFor(best.card, state);
   if (partner)
     reasons.append(
-      el(
-        "li",
-        "",
+      reason(
         `Ready match with your #${partner.tokenId}: Level ${partner.nextLevel} with ${number(partner.nextPower)} power (+25% score).${held === "staking" ? " Withdraw before transfer and deposit again." : ""}`,
+        [
+          tokenLink(best.card),
+          ...(state.account?.account
+            ? [walletLink(state.account.account)]
+            : []),
+        ],
       ),
     );
   else if (held === "wallet")
     reasons.append(
-      el(
-        "li",
-        "",
+      reason(
         "Held in a wallet, so there is no staking withdrawal step before transfer. Deposit it to start earning.",
+        [tokenLink(best.card, "custody source ↗")],
       ),
     );
   if (held === "staking")
     reasons.append(
-      el(
-        "li",
-        "",
+      reason(
         "It must be withdrawn by its depositor before transfer (−10% score). Earning resumes only after your deposit.",
+        [tokenLink(best.card, "custody source ↗")],
       ),
     );
   panel.append(reasons);
   return panel;
+}
+/** @param {string} text @param {HTMLAnchorElement[]} links */
+function reason(text, links) {
+  const li = el("li", "", text);
+  links.forEach((a, i) => li.append(i ? " · " : " ", a));
+  return li;
+}
+/** @param {import('./types.js').Card} c @param {string} [label] */
+function tokenLink(c, label = `#${c.id} source ↗`) {
+  return source(
+    `${API}/squeeks/${c.id}`,
+    label,
+    `Squeek #${c.id} API snapshot`,
+  );
+}
+function priceLink() {
+  return source(
+    "#shortlist-title",
+    "price input ↑",
+    "Asking price entered in the shortlist",
+  );
+}
+/** @param {string} account */
+function walletLink(account) {
+  return source(`${API}/accounts/${account}?limit=100`, "wallet source ↗");
 }
 function formulaLink() {
   const link = el("a", "formula-link", "How we score ↓");
@@ -565,6 +598,7 @@ export function card(c, state, retry) {
   power.append(
     el("span", "numeric", number(integer(s.basePower))),
     el("span", "muted", "base power"),
+    tokenSource(),
   );
   facts.append(power);
   if (ownedByBuyer(c, state))
@@ -720,6 +754,7 @@ export function card(c, state, retry) {
       ),
     );
   const details = el("details", "card-details");
+  details.dataset.disclosure = "traits";
   details.append(el("summary", "", "Traits & custody"));
   const traits = el("dl", "traits");
   for (const attr of s.metadata?.attributes ?? []) {
@@ -815,6 +850,7 @@ export function mergeText(s, settlements) {
 /** @param {number | undefined} level @param {ViewState} state */
 function ladder(level, state) {
   const detail = el("details", "card-details");
+  detail.dataset.disclosure = "ladder";
   detail.append(el("summary", "", "Full power & cooldown ladder"));
   if (!state.ctx?.ladder.length) {
     detail.append(

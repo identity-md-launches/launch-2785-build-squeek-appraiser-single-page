@@ -389,6 +389,81 @@ try {
   assert.equal(reads, before);
   await rate.close();
   pass("429 recovery respects Retry-After without repeated API requests");
+  const tiny = await context.newPage();
+  tiny.on("pageerror", (e) => errors.push(e.message));
+  await mock(tiny);
+  await tiny.goto(
+    base + "#ids=12-45&prices=0.000000000000000000000000000001-0.01",
+  );
+  await settled(tiny);
+  assert.match(await tiny.locator("#verdict").innerText(), /Buy Squeek #12/);
+  for (const width of [320, 390]) {
+    await noOverflow(tiny, width);
+    const box = await tiny.locator(".verdict").boundingBox();
+    const list = await tiny.locator(".verdict ul").boundingBox();
+    assert.ok(list.x + list.width <= box.x + box.width + 1, `${width} list`);
+  }
+  await tiny.locator("#verdict").scrollIntoViewIfNeeded();
+  await tiny.screenshot({ path: resolve(out, "320-tiny-price-verdict.png") });
+  assert.ok((await tiny.locator("#verdict .source-link").count()) >= 3);
+  assert.equal(
+    await tiny.locator(".card-power .source-link").count(),
+    await tiny.locator(".card-power").count(),
+  );
+  await tiny.close();
+  pass(
+    "Arbitrary-precision price wraps in the verdict at 320 and 390; verdict and card power carry source links",
+  );
+  const held = await context.newPage();
+  held.on("pageerror", (e) => errors.push(e.message));
+  await held.setViewportSize({ width: 390, height: 844 });
+  await mock(held);
+  /** @type {() => void} */
+  let release = () => {};
+  const gate = new Promise((r) => (release = r));
+  await held.route("https://api.squeekchain.com/v1/squeeks/45", async (r) => {
+    await gate;
+    await r.fallback();
+  });
+  await held.goto(base + "#ids=12-45&prices=0.02-0.01");
+  const summary = held
+    .locator(".squeek-card")
+    .first()
+    .locator("summary", { hasText: "Traits & custody" });
+  await summary.waitFor({ timeout: 30000 });
+  await summary.focus();
+  await held.keyboard.press("Enter");
+  const top = await summary.evaluate((n) => n.getBoundingClientRect().top);
+  release();
+  await settled(held);
+  assert.equal(
+    await held.evaluate(() => document.activeElement?.textContent),
+    "Traits & custody",
+  );
+  assert.equal(await held.locator("#cards details[open]").count(), 1);
+  const after = await summary.evaluate((n) => n.getBoundingClientRect().top);
+  assert.ok(Math.abs(after - top) <= 1, `summary moved ${top} → ${after}`);
+  await held
+    .locator(".squeek-card")
+    .first()
+    .locator("summary", { hasText: "Full power & cooldown ladder" })
+    .click();
+  await held.locator("#wallet-disclosure > summary").click();
+  await held.locator("#wallet-address").fill(owner);
+  await held.locator("#wallet-button").click();
+  await held.waitForFunction(
+    () =>
+      !/Checking/.test(
+        document.querySelector("#comparison")?.textContent ?? "",
+      ),
+  );
+  assert.equal(await held.locator("#cards details[open]").count(), 2);
+  await held.locator("#wallet-clear").click();
+  assert.equal(await held.locator("#cards details[open]").count(), 2);
+  await held.close();
+  pass(
+    "Late reads and wallet changes keep card focus, open disclosures and position",
+  );
   assert.deepEqual(errors, []);
   assert.deepEqual(localFailures, []);
   pass("No uncaught browser errors or missing local assets");
