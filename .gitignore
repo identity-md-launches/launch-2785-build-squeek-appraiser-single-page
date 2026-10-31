@@ -1,0 +1,9 @@
+node_modules/
+.npm/
+.cache/
+.playwright/
+playwright-report/
+test-results/
+*.tsbuildinfo
+test/scratch/
+.playwright-mcp/

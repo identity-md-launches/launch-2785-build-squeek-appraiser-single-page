@@ -1,0 +1,20 @@
+{
+  "name": "squeek-appraiser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A read-only static Squeek buyer comparison tool.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "preview": "node scripts/preview.mjs",
+    "validate:browser": "node scripts/validate-browser.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.11.0",
+    "playwright": "1.56.1",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Squeek Appraiser | Know your next Squeek</title>
+    <meta
+      name="description"
+      content="Compare up to three Squeeks by power, asking price, staking share and merge potential. A read-only buyer’s tool for Squeekchain on Sepolia."
+    />
+    <meta
+      property="og:title"
+      content="Squeek Appraiser | Know your next Squeek"
+    />
+    <meta
+      property="og:description"
+      content="A closer look at power, price and merge potential before you buy."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/social-card.png" />
+    <meta
+      property="og:image:alt"
+      content="Squeek Appraiser. Power, price and merge potential, on one desk."
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.squeekchain.com https://docs.squeekchain.com https://ethereum-sepolia-rpc.publicnode.com; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      href="./assets/fonts/fraunces-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to appraisal</a>
+    <header class="masthead wrap">
+      <a class="brand" href="./" aria-label="Squeek Appraiser home">
+        <img src="./assets/mark.svg" width="36" height="36" alt="" />
+        <span>Squeek Appraiser</span>
+      </a>
+      <div class="header-note">
+        <span class="status-dot" aria-hidden="true"></span>Sepolia
+        <span class="desktop-only">/ Read only</span>
+      </div>
+    </header>
+    <main id="main" class="wrap">
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <h1 id="page-title">Know your next Squeek.</h1>
+          <p>
+            Power, price and merge potential. Put your shortlist side by side.
+          </p>
+        </div>
+        <a
+          class="quiet-link desktop-only"
+          href="https://docs.squeekchain.com/squeeks/ownership/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Read the buyer’s checklist <span aria-hidden="true">↗</span></a
+        >
+      </section>
+      <section class="shortlist" aria-labelledby="shortlist-title">
+        <div class="section-head">
+          <h2 id="shortlist-title">Build your shortlist</h2>
+          <span class="muted small">Up to 3 Squeeks</span>
+        </div>
+        <form id="appraise-form" novalidate>
+          <div id="entry-list" class="entry-list"></div>
+          <div class="form-actions">
+            <button class="primary" id="appraise-button" type="submit">
+              Appraise Squeeks <span aria-hidden="true">↗</span>
+            </button>
+            <button class="text-button" type="button" id="example-button">
+              Try #12, #45 &amp; #301
+            </button>
+            <p class="small muted form-hint">
+              Prices are optional. Add them for a best pick.
+            </p>
+          </div>
+          <p class="field-error" id="form-error" role="alert" hidden></p>
+        </form>
+        <details id="wallet-disclosure" class="wallet-disclosure">
+          <summary>
+            Find merge partners in my wallet
+            <span class="muted">(optional)</span>
+          </summary>
+          <form id="wallet-form" novalidate>
+            <label for="wallet-address"
+              >My wallet address
+              <span class="muted small">Read only</span></label
+            >
+            <div class="wallet-input-row">
+              <input
+                id="wallet-address"
+                name="wallet"
+                type="text"
+                placeholder="0x…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="wallet-help wallet-error"
+              /><button type="submit" class="secondary" id="wallet-button">
+                Load Squeeks</button
+              ><button
+                type="button"
+                class="text-button"
+                id="wallet-clear"
+                hidden
+              >
+                Clear
+              </button>
+            </div>
+            <p class="small muted" id="wallet-help">
+              Checks both wallet and deposited Squeeks. Your address stays out
+              of the share link.
+            </p>
+            <p class="field-error" id="wallet-error" role="alert" hidden></p>
+          </form>
+          <div id="wallet-result"></div>
+        </details>
+      </section>
+      <p class="sr-only" role="status" id="announcements"></p>
+      <div id="results-toolbar" class="results-toolbar" hidden>
+        <div>
+          <h2>Your appraisal</h2>
+          <p id="freshness" class="small muted"></p>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" class="secondary" id="refresh-button">
+            Refresh reads</button
+          ><button type="button" class="secondary" id="share-button">
+            Copy comparison link
+          </button>
+        </div>
+      </div>
+      <div id="service-notice"></div>
+      <section id="verdict" aria-label="Appraiser’s verdict" hidden></section>
+      <section id="comparison" aria-labelledby="comparison-title" hidden>
+        <div class="section-head">
+          <h2 id="comparison-title">The comparison</h2>
+          <span class="small muted">✓ Row leader · ties share the mark</span>
+        </div>
+        <p class="small muted mobile-only">
+          Swipe the table to see every Squeek.
+        </p>
+        <div
+          class="table-box"
+          tabindex="0"
+          role="region"
+          aria-label="Squeek comparison, scroll horizontally"
+        >
+          <table id="comparison-table"></table>
+        </div>
+      </section>
+      <section id="card-section" aria-labelledby="card-title" hidden>
+        <div class="section-head">
+          <h2 id="card-title">A closer look</h2>
+          <span class="small muted">The details behind the numbers</span>
+        </div>
+        <div id="cards" class="cards"></div>
+      </section>
+      <section
+        id="empty-state"
+        class="empty-state"
+        aria-labelledby="empty-title"
+      >
+        <img
+          src="./assets/desk.svg"
+          width="176"
+          height="176"
+          alt=""
+          class="desk-illustration"
+        />
+        <div>
+          <h2 id="empty-title">
+            Every Squeek has a story.<br />Start with the numbers.
+          </h2>
+          <p>
+            Add a token ID above to see its power, reward share and next merge.
+            A second Squeek makes it a comparison.
+          </p>
+          <span class="small muted"
+            >Live public reads. No wallet connection.</span
+          >
+        </div>
+      </section>
+      <section class="before-trade" aria-labelledby="before-title">
+        <div>
+          <h2 id="before-title">Before you make a move</h2>
+          <p>
+            Re-check these in the same minute as the trade. The seller can still
+            act until the transfer executes.
+          </p>
+          <a
+            class="source-link"
+            href="https://docs.squeekchain.com/squeeks/ownership/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Ownership docs ↗</a
+          >
+        </div>
+        <ul class="checklist">
+          <li>Current custody and the right to withdraw</li>
+          <li>Level and any scheduled power change</li>
+          <li>Merge cooldown and whether merges are open</li>
+          <li>Rewards attachment for the current release</li>
+        </ul>
+      </section>
+      <details class="methodology" id="sources">
+        <summary>Sources, estimates &amp; how we score</summary>
+        <div class="method-content">
+          <h3>How we score</h3>
+          <p>
+            Score = (power ÷ asking price in ETH) × [1 + 0.25 if it merges with
+            yours today − 0.10 if it must leave staking first]. The adjustments
+            are additive. A Squeek with both gets ×1.15.
+          </p>
+          <p>
+            A best pick needs a positive price for every available candidate.
+            Zero or missing prices are unranked. Ties are shown as ties. This
+            measures power for your stated price, not a market price or a return
+            on investment. Your existing merge partner’s cost and network fees
+            are not included.
+          </p>
+          <p>
+            Squeeks already owned or deposited by your loaded wallet stay out of
+            the purchase ranking. The comparison and merge information remain
+            available.
+          </p>
+          <h3>What the reward share means</h3>
+          <p>
+            Base power × 10¹⁸ ÷ (total NFT power + total SQK power). The current
+            API reports pool power with 18 decimal places and base power as
+            whole units. For a wallet-held Squeek, this is an estimate once
+            deposited, at the current pool composition. Depositing adds power to
+            the pool; other deposits, withdrawals and policy changes can change
+            the share. The “per 1,000 SQK” figure applies to staking rewards
+            distributed, not all SQK minted.
+          </p>
+          <p>
+            Cooldown days are an estimate: Squeek blocks remaining ÷ (completed
+            Squeek blocks over 7 days ÷ 7). Rest and zero-work periods stay in
+            the denominator. It can take longer when Squeektoshi rests. No
+            future SQK per day is promised.
+          </p>
+          <h3>Where the reads come from</h3>
+          <ul>
+            <li>
+              <a
+                href="https://api.squeekchain.com/v1/economy/state"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Economy API</a
+              >: pool totals, release, contract identities and policy.
+            </li>
+            <li>
+              <a
+                href="https://api.squeekchain.com/v1/squeeks/12"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Squeek API</a
+              >: image, traits, level, base power, custody and cooldown. Each
+              card links its own endpoint.
+            </li>
+            <li>
+              <a
+                href="https://api.squeekchain.com/v1/settlements?range=7d"
+                target="_blank"
+                rel="noopener noreferrer"
+                >7-day settlements</a
+              >: completed blocks including rest periods.
+            </li>
+            <li>
+              Optional account API: all pages of owned and deposited Squeeks,
+              used only to find merge partners.
+            </li>
+            <li>
+              <a
+                href="https://docs.squeekchain.com/assets/deployments/sepolia.json"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Published deployment</a
+              >
+              compared with API identities before any contract read.
+            </li>
+            <li>
+              <a
+                href="https://ethereum-sepolia-rpc.publicnode.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Public Sepolia RPC</a
+              >: SqueekMining weightForLevel(0, level), cooldownBlocks(0,
+              level), position(0, id), plus SqueekNFT ownerOf(id) and
+              tokenURI(id), only when contract identities match.
+            </li>
+          </ul>
+          <p>
+            API snapshots are at a safe block with 12 confirmations and may be
+            cached for 5 seconds. Independent endpoint reads can span safe
+            blocks; their blocks and times remain visible. Unknown data is never
+            treated as zero. Refresh before a trade. No tracking, cookies or
+            stored wallet address; public services receive your read requests.
+          </p>
+        </div>
+      </details>
+    </main>
+    <footer class="wrap">
+      <div class="footer-brand">An appraisal, before an attachment.</div>
+      <p>
+        Testnet SQK and Squeeks have no monetary value.<br />Reads Squeekchain’s
+        public API and Sepolia contracts. Nothing is signed.
+      </p>
+    </footer>
+    <noscript
+      ><p class="noscript wrap">
+        Enable JavaScript to read live Squeek data. No wallet connection is
+        needed.
+      </p></noscript
+    >
+  </body>
+</html>
